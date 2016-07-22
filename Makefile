@@ -13,9 +13,9 @@ LIBDIRS = -L/usr/lib64
 LOCALLIBS = -ldcmnet -ldcmdata -loflog -lofstd $(ZLIBLIBS) $(TCPWRAPPERLIBS)
 DCMTLSLIBS = -ldcmtls
 
-mppssrcs = mpps_main.cc mppsscp.cc
+mppssrcs = mppsscp.cc
 mppsobjs = $(mppssrcs:.cc=.o)
-storcmtscpsrcs = storcmt_main.cc  storcmtscp.cc
+storcmtscpsrcs = storcmtscp.cc
 storcmtscpobjs = $(storcmtscpsrcs:.cc=.o)
 storcmtscusrcs = storcmtscu.cc
 storcmtscuobjs = $(storcmtscusrcs:.cc=.o)

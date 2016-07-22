@@ -4,8 +4,16 @@
 #include "dcmtk/ofstd/ofstd.h"
 #include <dcmtk/dcmnet/assoc.h>
 
+#define APPLICATIONTITLE "STORCMTSSCP"     /* our application entity title */
+
 #define OFFIS_CONSOLE_APPLICATION "storcmtscp"
 static OFLogger logger = OFLog::getLogger("dcmtk.apps." OFFIS_CONSOLE_APPLICATION);
+
+#define SHORTCOL 4
+#define LONGCOL 21
+
+OFCmdUnsignedInt   opt_port = 0;
+const char *       opt_respondingAETitle = APPLICATIONTITLE;
 
 static DUL_PRESENTATIONCONTEXT* findPresentationContextID(LST_HEAD *head,
                                                           T_ASC_PresentationContextID presentationContextID)
@@ -504,4 +512,58 @@ OFCondition DcmStorCmtSCP::handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
   return cond;
 }
 
+//
+// main
+//
 
+int main(int argc, char *argv[])
+{
+    OFConsoleApplication app(OFFIS_CONSOLE_APPLICATION, "DICOM mpps (N-ACTION) SCP");
+    OFCommandLine cmd;
+
+    cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
+    cmd.addParam("port", "tcp/ip port number to listen on", OFCmdParam::PM_Optional);
+
+    cmd.setOptionColumns(LONGCOL, SHORTCOL);
+    cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
+    cmd.addOption("--help",                     "-h",      "print this help text and exit", OFCommandLine::AF_Exclusive);
+    cmd.addOption("--version",                             "print version information and exit", OFCommandLine::AF_Exclusive);
+
+    OFString opt1 = "set my AE title (default: ";
+    opt1 += APPLICATIONTITLE;
+    opt1 += ")";
+    cmd.addOption("--aetitle",                "-aet", 1, "[a]etitle: string", opt1.c_str());
+    OFLog::addOptions(cmd);
+
+    /* evaluate command line */
+    prepareCmdLineArgs(argc, argv, OFFIS_CONSOLE_APPLICATION);
+    if (app.parseCommandLine(cmd, argc, argv, OFCommandLine::PF_ExpandWildcards))
+    {
+        /* print help text and exit */
+        if (cmd.getArgCount() == 0)
+            app.printUsage();
+
+        if (cmd.findOption("--aetitle")) app.checkValue(cmd.getValue(opt_respondingAETitle));
+
+        app.checkParam(cmd.getParamAndCheckMinMax(1, opt_port, 1, 65535));
+        OFLog::configureFromCommandLine(cmd, app);
+
+    }
+
+    OFString config = "storcmtscp.cfg";
+
+    DcmStorCmtSCP *storcmtscp = new DcmStorCmtSCP();
+    storcmtscp->setPort(opt_port);
+    storcmtscp->setAETitle(opt_respondingAETitle);
+   
+    OFCondition cond = EC_Normal;
+    cond = storcmtscp->loadAssociationCfgFile(config);
+    if (cond.bad()) {
+        printf ("loadAssociationCfgFile fail. setup manually\n");
+        exit(-1);
+    }
+
+    storcmtscp->listen();
+
+    delete storcmtscp;
+}
