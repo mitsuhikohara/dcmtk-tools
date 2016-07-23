@@ -426,7 +426,13 @@ OFCondition DcmStorCmtSCP::handleIncomingCommand(T_DIMSE_Message *msg,
   else if ( msg->CommandField == DIMSE_N_ACTION_RQ ) 
   {
     // Process N-ACTION request
-    cond = handleNACTIONRequest( msg->msg.NActionRQ, info.presentationContextID );
+    cond = handleACTIONRequest( msg->msg.NActionRQ, info.presentationContextID );
+
+  }
+  else if ( msg->CommandField == DIMSE_N_EVENT_REPORT_RSP )
+  {
+    // Process N-ACTION request
+    cond = handleEVENTREPORTResponse( msg->msg.NEventReportRSP, info.presentationContextID );
 
   }
   else {
@@ -446,7 +452,7 @@ OFCondition DcmStorCmtSCP::handleIncomingCommand(T_DIMSE_Message *msg,
 
 // ----------------------------------------------------------------------------
 
-OFCondition DcmStorCmtSCP::handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
+OFCondition DcmStorCmtSCP::handleACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
                                       T_ASC_PresentationContextID presID)
 {
     OFCondition cond = EC_Normal;
@@ -460,7 +466,7 @@ OFCondition DcmStorCmtSCP::handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
 
     OFString temp_str;
     OFLOG_INFO(logger, "Received N-ACTION Request");
-    OFLOG_INFO(logger, DIMSE_dumpMessage(temp_str, reqMessage, DIMSE_INCOMING, rqDataset, presID));
+    OFLOG_DEBUG(logger, DIMSE_dumpMessage(temp_str, reqMessage, DIMSE_INCOMING, rqDataset, presID));
 
     // initialize response message
     T_DIMSE_Message rsp;
@@ -504,6 +510,12 @@ OFCondition DcmStorCmtSCP::handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
         delete rspDataset;
     }
 
+
+    cond = sendEVENTREPORTRequest(presID,rsp.msg.NActionRSP.AffectedSOPInstanceUID, 1 , rqDataset);
+    if (cond.bad()) {
+        OFLOG_ERROR(logger, "Failed sending N-EVENT-REPORT-RQ: " << DimseCondition::dump(temp_str, cond));
+    }
+
     if (rqDataset != NULL) {
         delete rqDataset;
     }
@@ -512,6 +524,56 @@ OFCondition DcmStorCmtSCP::handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
   return cond;
 }
 
+
+// Sends N-EVENT-REPORT request to another DICOM application
+OFCondition DcmStorCmtSCP::sendEVENTREPORTRequest(const T_ASC_PresentationContextID presID,
+                                        const OFString &sopInstanceUID,
+                                        const Uint16 eventTypeID,
+                                        DcmDataset *reqDataset )
+{
+  if (m_assoc == NULL)
+    return DIMSE_ILLEGALASSOCIATION;
+
+    OFCondition cond = EC_Normal;
+
+    T_DIMSE_Message req;
+    req.CommandField = DIMSE_N_EVENT_REPORT_RQ;
+    strncpy(req.msg.NEventReportRQ.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, sizeof(DIC_UI));
+    req.msg.NEventReportRQ.AffectedSOPClassUID[sizeof(DIC_UI)-1] = 0;
+    strncpy(req.msg.NEventReportRQ.AffectedSOPInstanceUID, sopInstanceUID.c_str(), sizeof(DIC_UI));
+    req.msg.NEventReportRQ.AffectedSOPInstanceUID[sizeof(DIC_UI)-1] = 0;
+    req.msg.NEventReportRQ.EventTypeID = eventTypeID;
+    req.msg.NEventReportRQ.DataSetType = DIMSE_DATASET_PRESENT;
+
+    OFString temp_str;
+    OFLOG_INFO(logger, "Sent N-EVENT-REPORT-RQ");
+    OFLOG_DEBUG(logger, DIMSE_dumpMessage(temp_str, req, DIMSE_OUTGOING, reqDataset, presID));
+
+    cond = DIMSE_sendMessageUsingMemoryData(m_assoc, presID, &req, NULL, reqDataset, NULL, NULL, NULL);
+    if (cond.bad()) {
+        OFLOG_ERROR(logger, "Failed sending N-EVENT-REPORT request: " << DimseCondition::dump(temp_str, cond));
+    }
+
+  return cond;
+}
+
+OFCondition DcmStorCmtSCP::handleEVENTREPORTResponse(T_DIMSE_N_EventReportRSP &respMessage,
+                                      T_ASC_PresentationContextID presID)
+{
+    OFCondition cond = EC_Normal;
+
+    OFString temp_str;
+    OFLOG_INFO(logger, "Received N-EVENT-REPORT Response");
+    OFLOG_DEBUG(logger, DIMSE_dumpMessage(temp_str, respMessage, DIMSE_INCOMING, NULL, presID));
+
+   return cond;
+
+}
+
+OFBool DcmStorCmtSCP::isConnected() const
+{
+  return (m_assoc != NULL) && (m_assoc->DULassociation != NULL);
+}
 //
 // main
 //

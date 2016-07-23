@@ -469,7 +469,7 @@ OFCondition DcmMppsSCP::handleNCREATERequest(T_DIMSE_N_CreateRQ &reqMessage,
 
     OFString tempStr;
     OFLOG_INFO(logger,"Received N-CREATE Request");
-    OFLOG_INFO(logger,DIMSE_dumpMessage(tempStr, reqMessage, DIMSE_INCOMING, rqDataset, presID));
+    OFLOG_DEBUG(logger,DIMSE_dumpMessage(tempStr, reqMessage, DIMSE_INCOMING, rqDataset, presID));
 
     T_DIMSE_Message rsp;
     rsp.CommandField = DIMSE_N_CREATE_RSP;
@@ -530,7 +530,7 @@ OFCondition DcmMppsSCP::handleNSETRequest(T_DIMSE_N_SetRQ &reqMessage,
 
     OFString tempStr;
     OFLOG_INFO(logger, "Received N-SET Request");
-    OFLOG_INFO(logger, DIMSE_dumpMessage(tempStr, reqMessage, DIMSE_INCOMING, rqDataset, presID));
+    OFLOG_DEBUG(logger, DIMSE_dumpMessage(tempStr, reqMessage, DIMSE_INCOMING, rqDataset, presID));
 
     // initialize response message
     T_DIMSE_Message rsp;
