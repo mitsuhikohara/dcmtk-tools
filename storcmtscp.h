@@ -2,6 +2,7 @@
 #define _STORCMTSCP_H_
 
 #include <dcmtk/dcmnet/scp.h>
+#include "storcmtscu.h" 
 
 class DcmStorCmtSCP: public DcmSCP {
 
@@ -14,6 +15,8 @@ public:
      OFCondition loadAssociationCfgFile(const OFString &assocFile);
      OFCondition listen();
 
+     OFBool isConnected() const;
+
 protected:
      virtual OFCondition waitForAssociation(T_ASC_Network *network);
      virtual void notifyAssociationRequest(const T_ASC_Parameters &params, DcmSCPActionType &desiredAction);
@@ -22,9 +25,19 @@ protected:
      virtual void handleAssociation();
 
      virtual OFCondition handleIncomingCommand(T_DIMSE_Message *msg, const DcmPresentationContextInfo &info);
-     virtual OFCondition handleNACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage, T_ASC_PresentationContextID presID);
+     virtual OFCondition handleECHORequest(T_DIMSE_C_EchoRQ &reqMessage, T_ASC_PresentationContextID presID);
+     virtual OFCondition handleACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage, T_ASC_PresentationContextID presID);
+
+     virtual OFCondition sendEVENTREPORTRequest(const T_ASC_PresentationContextID presID);
+     virtual OFCondition handleEVENTREPORTResponse(T_DIMSE_N_EventReportRSP &respMessage, T_ASC_PresentationContextID presID);
+
 
 private:
+//     T_ASC_Network *m_net;
+
+  /// Association parameters
+//     T_ASC_Parameters *m_params;
+
      /// Current association run by this SCP
      T_ASC_Association *m_assoc;
 
@@ -57,6 +70,8 @@ private:
      /// which is given for the SCU to follow the ACSE protocol.
      Uint32 m_acseTimeout;
 
+
+     DcmStorCmtSCU *m_scu ;
 };
 
 
