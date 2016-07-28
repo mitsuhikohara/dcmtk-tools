@@ -8,23 +8,23 @@ configdir = .
 
 include $(configdir)/Makefile.def
 
-LOCALINCLUDES = -I/usr/include
-LIBDIRS = -L/usr/lib64
+LOCALINCLUDES = -I/usr/local/include -I/usr/include
+LIBDIRS = -L/usr/local/lib64 -L/usr/lib64
 LOCALLIBS = -ldcmnet -ldcmdata -loflog -lofstd $(ZLIBLIBS) $(TCPWRAPPERLIBS)
 DCMTLSLIBS = -ldcmtls
 
-mppssrcs = mppsscp.cc
+mppssrcs = mppsrecv.cc dmppsscp.cc
 mppsobjs = $(mppssrcs:.cc=.o)
 storcmtscpsrcs = storcmtscp.cc storcmtscu.cc
 storcmtscpobjs = $(storcmtscpsrcs:.cc=.o)
 storcmtscusrcs = storcmtscu.cc
 storcmtscuobjs = $(storcmtscusrcs:.cc=.o)
 
-progs = mppsscp storcmtscp #storcmtscu
+progs = mppsrecv
 
 all: $(progs)
 
-mppsscp: $(mppsobjs)
+mppsrecv: $(mppsobjs)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(mppsobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
 
 storcmtscp: $(storcmtscpobjs)
@@ -34,5 +34,5 @@ storcmtscu: $(storcmtscuobjs)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(storcmtscuobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
 
 clean:
-	rm -f $(objs) $(progs) $(TRASH) $(storcmtscuobjs) $(storcmtscpobjs)
+	rm -f $(objs) $(progs) $(TRASH) $(storcmtscuobjs) $(storcmtscpobjs) $(mppsobjs)
 
