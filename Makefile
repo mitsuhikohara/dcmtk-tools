@@ -15,24 +15,19 @@ DCMTLSLIBS = -ldcmtls
 
 mppssrcs = mppsrecv.cc dmppsscp.cc
 mppsobjs = $(mppssrcs:.cc=.o)
-storcmtscpsrcs = storcmtscp.cc storcmtscu.cc
-storcmtscpobjs = $(storcmtscpsrcs:.cc=.o)
-storcmtscusrcs = storcmtscu.cc
-storcmtscuobjs = $(storcmtscusrcs:.cc=.o)
+storcmtsrcs = storcmtrecv.cc dstorcmtscp.cc
+storcmtobjs = $(storcmtsrcs:.cc=.o)
 
-progs = mppsrecv
+progs = mppsrecv storcmtrecv
 
 all: $(progs)
 
 mppsrecv: $(mppsobjs)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(mppsobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
 
-storcmtscp: $(storcmtscpobjs)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(storcmtscpobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
-
-storcmtscu: $(storcmtscuobjs)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(storcmtscuobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
+storcmtrecv: $(storcmtobjs)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(storcmtobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
 
 clean:
-	rm -f $(objs) $(progs) $(TRASH) $(storcmtscuobjs) $(storcmtscpobjs) $(mppsobjs)
+	rm -f $(progs) $(mppsobjs) $(storcmtobjs)
 
