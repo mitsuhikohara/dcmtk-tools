@@ -24,9 +24,8 @@
 
 #include "dcmtk/config/osconfig.h"  /* make sure OS specific configuration is included first */
 
-#include "dcmtk/ofstd/offname.h"    /* for OFFilenameCreator */
 #include "dcmtk/dcmnet/scp.h"       /* for base class DcmSCP */
-
+#include "dstorcmtscu.h"
 
 /*---------------------*
  *  class declaration  *
@@ -49,6 +48,16 @@ class DCMTK_DCMNET_EXPORT DcmStorCmtSCP : public DcmSCP
     /** destructor
      */
     virtual ~DcmStorCmtSCP();
+
+    /** Set N-EVENT-REPORT event mode
+    *  @param mode [in] OFTrue, EVENT-REPORT is sent in the same association, OFFalse sent in the different association.
+    */
+    void setEventReportMode(const OFBool mode);
+
+    /** Returns whether wait for EVENT-REPORT report in SCU
+    *  @return OFTrue, EVENT-REPORT is sent in the same association, OFFalse sent in the different association
+    */
+    OFBool getEventReportMode() const;
 
   protected:
 
@@ -85,19 +94,24 @@ class DCMTK_DCMNET_EXPORT DcmStorCmtSCP : public DcmSCP
                                         const T_DIMSE_N_ActionRQ &reqMessage,
                                         const Uint16 rspStatusCode);
 
-  /** Send the N-EVENT-REPORT request (with dataset)
-   *  @param presID         [in] The presentation context ID to respond to
-   *  @param messageID      [in] The message ID to send
-   *  @param sopClassUID    [in] The affected SOP class UID
-   *  @param sopInstanceUID [in] The affected SOP instance UID
-   *  @param reqDataset     [in] The Dataset to send  (if desired).
-   *  @return EC_Normal, if responding was successful, an error code otherwise
+  /** This function sends N-EVENT-REPORT request and receives the corresponding response
+   *  @param presID         [in]  The ID of the presentation context to be used for sending
+   *                              the request message. Should not be 0.
+   *  @param messageID [in]  The requested message ID
+   *  @param sopInstanceUID [in]  The requested SOP Instance UID
+   *  @param eventTypeID    [in]  The event type ID to be used
+   *  @param reqDataset     [in]  The request dataset to be sent
+   *  @param rspStatusCode  [out] The response status code received. 0 means success,
+   *                              others can be found in the DICOM standard.
+   *  @return EC_Normal if request could be issued and response was received successfully,
+   *          an error code otherwise
    */
   virtual OFCondition sendEVENTREPORTRequest(const T_ASC_PresentationContextID presID,
-                                        const Uint16 messageID,
-                                        const OFString &sopClassUID,
-                                        const OFString &sopInstanceUID,
-                                        DcmDataset *reqDataset = NULL);
+                                             const Uint16 messageID,
+                                             const OFString &sopInstanceUID,
+                                             const Uint16 eventTypeID,
+                                             DcmDataset *reqDataset,
+                                             Uint16 &rspStatusCode);
 
   /** Receive N-EVENT-REPORT responset
    *  @param respMessage [in]    The N-EVENT-REPORT response message that was received
@@ -108,6 +122,10 @@ class DCMTK_DCMNET_EXPORT DcmStorCmtSCP : public DcmSCP
   virtual OFCondition receiveEVENTREPORTResponse(T_DIMSE_N_EventReportRSP &respMessage,
                                           const T_ASC_PresentationContextID presID );
 
+  /** Overwrite this function to be notified when an association is terminated.
+   *  The standard handler only outputs some information to the logger.
+   */
+  virtual void notifyAssociationTermination();
 
 private:
 
@@ -117,10 +135,18 @@ private:
     // private undefined assignment operator
     DcmStorCmtSCP &operator=(const DcmStorCmtSCP &);
 
-    /** Returns next available message ID free to be used by SCU
-    *  @return Next free message ID
-    */
+    // event report message id
     Uint16 eventReportMsgID;
+
+    // event report mode - wait for action response or not
+    OFBool m_noWaitAfterActionResponse;
+
+    // Storage commit SCU to send EVENT REORT in separate association
+    DcmStorCmtSCU *scu;
+
+    // Storage commit command to send in EVENT REPORT
+    DcmStorageCommitmentCommand *storageCommitCommand;
+
 
 };
 

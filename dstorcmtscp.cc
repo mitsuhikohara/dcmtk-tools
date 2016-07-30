@@ -29,19 +29,49 @@
 
 DcmStorCmtSCP::DcmStorCmtSCP()
   : DcmSCP(), 
-    eventReportMsgID(1)
+    eventReportMsgID(1),
+    m_noWaitAfterActionResponse(OFFalse),
+    scu(NULL)
 {
     // make sure that the SCP at least supports C-ECHO with default transfer syntax
     OFList<OFString> transferSyntaxes;
+    transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+    transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
     transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
     addPresentationContext(UID_VerificationSOPClass, transferSyntaxes);
     // add Storage Commitment support
     addPresentationContext(UID_StorageCommitmentPushModelSOPClass, transferSyntaxes);
+
+    scu = new DcmStorCmtSCU();
+    storageCommitCommand = NULL;
 }
 
 
 DcmStorCmtSCP::~DcmStorCmtSCP()
 {
+    if (storageCommitCommand != NULL )
+    {
+        if (storageCommitCommand->reqDataset != NULL) {
+            delete storageCommitCommand->reqDataset;
+        }
+        delete storageCommitCommand;
+        storageCommitCommand = NULL;
+    }
+
+    if (scu) {
+        delete scu;
+        scu = NULL;
+    }
+}
+
+void DcmStorCmtSCP::setEventReportMode(const OFBool mode)
+{
+  m_noWaitAfterActionResponse = mode;
+}
+
+OFBool DcmStorCmtSCP::getEventReportMode() const
+{
+  return m_noWaitAfterActionResponse;
 }
 
 // protected methods
@@ -81,18 +111,33 @@ OFCondition DcmStorCmtSCP::handleIncomingCommand(T_DIMSE_Message *incomingMsg,
                 rspStatusCode = STATUS_N_AttributeListError;
             }
 
-            DcmDataset *reportDataset = (DcmDataset *)reqDataset->clone();
-
             status = sendACTIONResponse(presInfo.presentationContextID, actionReq, rspStatusCode);
+            if (status.good()) {
+                 storageCommitCommand = new DcmStorageCommitmentCommand();
+                 storageCommitCommand->localAETitle = getCalledAETitle();
+                 storageCommitCommand->remoteAETitle = getPeerAETitle();
+                 storageCommitCommand->remoteHostName = getPeerAETitle();
+                 storageCommitCommand->remoteIP = getPeerIP();
+                 storageCommitCommand->remotePort = 4115; // FIXME
+                 storageCommitCommand->reqDataset = (DcmDataset *)reqDataset->clone();
 
-            // current implementation send N-EVENT-REPORT requiest in the same association
-            if (status.good())
-            {
-                 Uint16 messageID = eventReportMsgID++;
-                 OFString sopClassUID = actionReq.RequestedSOPClassUID;
-                 OFString sopInstanceUID = actionReq.RequestedSOPInstanceUID;
-                 status = sendEVENTREPORTRequest(presInfo.presentationContextID,
-                                      messageID, sopClassUID, sopInstanceUID, reportDataset);
+                 if (m_noWaitAfterActionResponse == OFFalse)
+                 {
+                      OFString sopInstanceUID = UID_StorageCommitmentPushModelSOPInstance;
+                      Uint16 messageID = actionReq.MessageID;
+                      Uint16 eventTypeID = 1;
+                      Uint16 rspStatusCode = 0;
+                      status = sendEVENTREPORTRequest(presInfo.presentationContextID,messageID,sopInstanceUID,eventTypeID,storageCommitCommand->reqDataset,rspStatusCode);
+                      if (status.bad()) {
+                          OFString tempStr;
+                          DCMNET_ERROR(DimseCondition::dump(tempStr, status));
+                      }
+                     if (status.good()) {
+                         delete storageCommitCommand->reqDataset ;
+                         delete storageCommitCommand;
+                         storageCommitCommand = NULL;
+                     }
+                }
             }
         }
         else if (incomingMsg->CommandField == DIMSE_N_EVENT_REPORT_RSP)
@@ -149,8 +194,6 @@ OFCondition DcmStorCmtSCP::receiveACTIONRequest(T_DIMSE_N_ActionRQ &reqMessage,
     DCMNET_ERROR("Unable to receive N-ACTION dataset on presentation context " << OFstatic_cast(unsigned int, presID));
     return cond;
   }
-
-  DCMNET_INFO(DIMSE_dumpMessage(tempStr, reqMessage, DIMSE_INCOMING, dataset, presID));
 
   // Output request message only if trace level is enabled
   if (DCM_dcmnetLogger.isEnabledFor(OFLogger::TRACE_LOG_LEVEL))
@@ -218,49 +261,124 @@ OFCondition DcmStorCmtSCP::sendACTIONResponse(T_ASC_PresentationContextID presID
 
 }
 
+/* ************************************************************************* */
+/*                         N-EVENT REPORT functionality                      */
+/* ************************************************************************* */
+
+// Sends N-EVENT-REPORT request and receives N-EVENT-REPORT response
 OFCondition DcmStorCmtSCP::sendEVENTREPORTRequest(const T_ASC_PresentationContextID presID,
-                                      const Uint16 messageID,
-                                      const OFString &sopClassUID,
-                                      const OFString &sopInstanceUID,
-                                      DcmDataset *reqDataset)
+                                           const Uint16 messageID,
+                                           const OFString &sopInstanceUID,
+                                           const Uint16 eventTypeID,
+                                           DcmDataset *reqDataset,
+                                           Uint16 &rspStatusCode)
 {
+  // Do some basic validity checks
+  if (!isConnected())
+    return DIMSE_ILLEGALASSOCIATION;
+  if (sopInstanceUID.empty() || (reqDataset == NULL))
+    return DIMSE_NULLKEY;
+
+  // Prepare DIMSE data structures for issuing request
   OFCondition cond;
   OFString tempStr;
-
-  // Send request
+  T_ASC_PresentationContextID pcid = presID;
   T_DIMSE_Message request;
   // Make sure everything is zeroed (especially options)
   bzero((char*)&request, sizeof(request));
-  T_DIMSE_N_EventReportRQ &eventReportRq = request.msg.NEventReportRQ;
+
+  T_DIMSE_N_EventReportRQ &eventReportReq = request.msg.NEventReportRQ;
+  DcmDataset *statusDetail = NULL;
+
   request.CommandField = DIMSE_N_EVENT_REPORT_RQ;
-  eventReportRq.DataSetType = DIMSE_DATASET_PRESENT;
-  eventReportRq.EventTypeID = 1;
-  OFStandard::strlcpy(eventReportRq.AffectedSOPClassUID, sopClassUID.c_str(), sizeof(eventReportRq.AffectedSOPClassUID));
-  OFStandard::strlcpy(eventReportRq.AffectedSOPInstanceUID, sopInstanceUID.c_str(), sizeof(eventReportRq.AffectedSOPInstanceUID));
 
+  // Generate a new message ID
+  eventReportReq.MessageID = messageID;
+  eventReportReq.DataSetType = DIMSE_DATASET_PRESENT;
+  eventReportReq.EventTypeID = eventTypeID;
 
+  // Determine SOP Class from presentation context
+  OFString abstractSyntax, transferSyntax;
+  findPresentationContext(pcid, abstractSyntax, transferSyntax);
+  if (abstractSyntax.empty() || transferSyntax.empty())
+    return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+  OFStandard::strlcpy(eventReportReq.AffectedSOPClassUID, abstractSyntax.c_str(), sizeof(eventReportReq.AffectedSOPClassUID));
+  OFStandard::strlcpy(eventReportReq.AffectedSOPInstanceUID, sopInstanceUID.c_str(), sizeof(eventReportReq.AffectedSOPInstanceUID));
+
+  // Send request
   if (DCM_dcmnetLogger.isEnabledFor(OFLogger::DEBUG_LOG_LEVEL))
   {
     DCMNET_INFO("Sending N-EVENT-REPORT Request");
-    DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, request, DIMSE_OUTGOING, NULL, presID));
+    // Output dataset only if trace level is enabled
+    if (DCM_dcmnetLogger.isEnabledFor(OFLogger::TRACE_LOG_LEVEL))
+      DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, request, DIMSE_OUTGOING, reqDataset, pcid));
+    else
+      DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, request, DIMSE_OUTGOING, NULL, pcid));
   } else {
-    DCMNET_INFO("Sending N-EVENT-REPORT Request");
+    DCMNET_INFO("Sending N-EVENT-REPORT Request (MsgID " << eventReportReq.MessageID << ")");
   }
-
-  if (reqDataset == NULL) 
-  {
-    DCMNET_ERROR("reqDataset is NULL");
-  }
-
-  // Send response message
-  cond = sendDIMSEMessage(presID, &request, reqDataset, NULL);
+  cond = sendDIMSEMessage(pcid, &request, reqDataset);
   if (cond.bad())
   {
     DCMNET_ERROR("Failed sending N-EVENT-REPORT request: " << DimseCondition::dump(tempStr, cond));
+    return cond;
+  }
+  // Receive response
+  T_DIMSE_Message response;
+  // Make sure everything is zeroed (especially options)
+  bzero((char*)&response, sizeof(response));
+
+  cond = receiveDIMSECommand(&pcid, &response, &statusDetail, NULL /* commandSet */);
+  if (cond.bad())
+  {
+    DCMNET_ERROR("Failed receiving DIMSE response: " << DimseCondition::dump(tempStr, cond));
+    return cond;
   }
 
-  delete reqDataset;
+  // Check command set
+  if (response.CommandField == DIMSE_N_EVENT_REPORT_RSP)
+  {
+    if (DCM_dcmnetLogger.isEnabledFor(OFLogger::DEBUG_LOG_LEVEL))
+    {
+      DCMNET_INFO("Received N-EVENT-REPORT Response");
+      DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, response, DIMSE_INCOMING, NULL, pcid));
+    } else {
+      DCMNET_INFO("Received N-EVENT-REPORT Response (" << DU_neventReportStatusString(response.msg.NEventReportRSP.DimseStatus) << ")");
+    }
+  } else {
+    DCMNET_ERROR("Expected N-EVENT-REPORT response but received DIMSE command 0x"
+      << STD_NAMESPACE hex << STD_NAMESPACE setfill('0') << STD_NAMESPACE setw(4)
+      << OFstatic_cast(unsigned int, response.CommandField));
+    DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, response, DIMSE_INCOMING, NULL, pcid));
+    delete statusDetail;
+    return DIMSE_BADCOMMANDTYPE;
+  }
+  if (statusDetail != NULL)
+  {
+    DCMNET_DEBUG("Response has status detail:" << OFendl << DcmObject::PrintHelper(*statusDetail));
+    delete statusDetail;
+  }
+  // Set return value
+  T_DIMSE_N_EventReportRSP &eventReportRsp = response.msg.NEventReportRSP;
+  rspStatusCode = eventReportRsp.DimseStatus;
 
+  // Check whether there is a dataset to be received
+  if (eventReportRsp.DataSetType == DIMSE_DATASET_PRESENT)
+  {
+    // this should never happen
+    DcmDataset *tempDataset = NULL;
+    T_ASC_PresentationContextID tempID;
+    cond = receiveDIMSEDataset(&tempID, &tempDataset);
+    if (cond.good())
+    {
+      DCMNET_WARN("Received unexpected dataset after N-EVENT-REPORT response, ignoring");
+      delete tempDataset;
+    } else {
+      DCMNET_ERROR("Failed receiving unexpected dataset after N-EVENT-REPORT response: "
+        << DimseCondition::dump(tempStr, cond));
+      return DIMSE_BADDATA;
+    }
+  }
   return cond;
 }
 
@@ -272,9 +390,23 @@ OFCondition DcmStorCmtSCP::receiveEVENTREPORTResponse(T_DIMSE_N_EventReportRSP &
 
   // Dump debug information
   DCMNET_INFO("Received N-EVENT-REPORT Response");
-
   DCMNET_DEBUG(DIMSE_dumpMessage(tempStr, respMessage, DIMSE_INCOMING, NULL, presID));
 
   return cond;
+}
+
+void DcmStorCmtSCP::notifyAssociationTermination()
+{
+    if (m_noWaitAfterActionResponse == OFTrue && scu != NULL && storageCommitCommand != NULL)
+    {
+        scu->setVerbosePCMode(OFTrue);
+        scu->setStorageCommitCommand(storageCommitCommand) ;
+        scu->start();
+        scu->join();
+
+        delete storageCommitCommand->reqDataset ;
+        delete storageCommitCommand;
+        storageCommitCommand = NULL;
+    }
 }
 
