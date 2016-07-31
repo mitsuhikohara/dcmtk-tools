@@ -15,7 +15,7 @@ DCMTLSLIBS = -ldcmtls
 
 mppssrcs = mppsrecv.cc dmppsscp.cc
 mppsobjs = $(mppssrcs:.cc=.o)
-storcmtsrcs = storcmtrecv.cc dstorcmtscp.cc
+storcmtsrcs = storcmtrecv.cc dstorcmtscp.cc dstorcmtscu.cc
 storcmtobjs = $(storcmtsrcs:.cc=.o)
 
 progs = mppsrecv storcmtrecv

@@ -27,7 +27,6 @@
 // DcmStorCmtSCU
 //
 DcmStorCmtSCU::DcmStorCmtSCU():
-  OFThread(),
   m_assoc(NULL),
   m_net(NULL),
   m_params(NULL),
@@ -706,64 +705,4 @@ OFBool DcmStorCmtSCU::getVerbosePCMode() const
 {
   return m_verbosePCMode;
 }
-
-int DcmStorCmtSCU::start()
-{
-    return OFThread::start();
-}
-
-int DcmStorCmtSCU::join()
-{
-    return OFThread::join();
-}
-
-void DcmStorCmtSCU::run()
-{
-    OFCondition cond = EC_Normal;
-
-    DCMNET_DEBUG("SCU: initNetwork START");
-    cond = initNetwork();
-    if (cond.bad()) {
-        OFString tempStr;
-        DCMNET_ERROR(DimseCondition::dump(tempStr, cond));
-        return;
-    }
-    DCMNET_DEBUG("SCU: initNetwork END");
-
-    DCMNET_DEBUG("SCU: negotiateAssociation START");
-    cond = negotiateAssociation();
-    if (cond.bad()) {
-        OFString tempStr;
-        DCMNET_ERROR(DimseCondition::dump(tempStr, cond));
-        return;
-    }
-    DCMNET_DEBUG("SCU: negotiateAssociation END");
-
-    T_ASC_PresentationContextID presID = 0;
-    if (presID == 0)
-        presID = findPresentationContextID(UID_StorageCommitmentPushModelSOPClass, UID_LittleEndianExplicitTransferSyntax);
-    if (presID == 0)
-    {
-        DCMNET_ERROR("No presentation context found for sending N-EVENT-REPORT with SOP Class / Transfer Syntax");
-        return;
-    }
-
-
-    OFString sopInstanceUID = UID_StorageCommitmentPushModelSOPInstance;
-    Uint16 eventTypeID = 1;
-    Uint16 rspStatusCode = 0; 
-    cond = sendEVENTREPORTRequest(presID,sopInstanceUID,eventTypeID,storageCommitCommand->reqDataset,rspStatusCode);
-    if (cond.bad()) {
-        OFString tempStr;
-        DCMNET_ERROR(DimseCondition::dump(tempStr, cond));
-        return;
-    }
-
-    DCMNET_DEBUG("SCU: closeAssociation START");
-    closeAssociation(DCMSCU_RELEASE_ASSOCIATION);
-    DCMNET_DEBUG("SCU: closeAssociation END");
-
-    return;
-}
-
 

@@ -43,23 +43,6 @@ DcmMPPSSCP::~DcmMPPSSCP()
 {
 }
 
-#if 0
-
-// further public methods
-
-OFCondition DcmMPPSSCP::loadAssociationConfiguration(const OFString &filename,
-                                                        const OFString &profile)
-{
-    // first, try to load the configuration file
-    OFCondition status = loadAssociationCfgFile(filename);
-    // and then, try to select the desired profile
-    if (status.good())
-        status = setAndCheckAssociationProfile(profile);
-    return status;
-}
-
-#endif
-
 // protected methods
 
 OFCondition DcmMPPSSCP::handleIncomingCommand(T_DIMSE_Message *incomingMsg,

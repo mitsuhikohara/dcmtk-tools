@@ -64,7 +64,7 @@ struct DcmStorageCommitmentCommand {
 
 } ;
 
-class DcmStorCmtSCU: public OFThread {
+class DcmStorCmtSCU {
 
 public:
     DcmStorCmtSCU();
@@ -201,10 +201,8 @@ public:
   /** Deletes internal networking structures from memory */
   void freeNetwork();
 
+  // set storage commitment command
     void setStorageCommitCommand( DcmStorageCommitmentCommand *command );
-
-    int start();
-    int join();
 
 protected:
 
@@ -353,9 +351,6 @@ private:
    *  @return Next free message ID
    */
   Uint16 nextMessageID();
-
-    // OFThread - run
-    void run();
 
 };
 

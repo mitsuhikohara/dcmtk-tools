@@ -12,7 +12,8 @@ It is still incomplete.
 
    - receive N-ACTION Request and send back N-ACTION Response
    - send N-EVENT-REPORT Request in the same association with N-ACTION Response
-   - send N-EVENT-REPORT Request in the different associationth from N-ACTION Response (with -nwa option)
+     if association is closed within 5 sec, otherwise send N-EVENT-REPORT Request 
+     in new association.
 
 Requirement: 
     dcmtk-3.6.1 is required to built
@@ -24,8 +25,6 @@ Usage:
     
     % storcmtrecv  -aet <AETitle> < port number> 
 
-    -nwa (--nowait-after-action-response) option sends EVENT-REPORT request in new association.
-    % storcmtrecv  -aet <AETitle> -nwa < port number> 
 
 
 
