@@ -30,7 +30,8 @@
 DcmStorCmtSCP::DcmStorCmtSCP():
   m_assoc(NULL),
   m_cfg(),
-  m_commit_wait_timeout(5)
+  m_commit_wait_timeout(5),
+  m_peerPort(115)
 {
     // make sure that the SCP at least supports C-ECHO with default transfer syntax
     OFList<OFString> transferSyntaxes;
@@ -607,11 +608,11 @@ OFCondition DcmStorCmtSCP::handleIncomingCommand(T_DIMSE_Message *incomingMsg,
                                        sopClassUID, sopInstanceUID,rspStatusCode);
             if (status.good()) {
                 storageCommitCommand = new DcmStorageCommitmentCommand();
-                storageCommitCommand->localAETitle = getCalledAETitle();
-                storageCommitCommand->remoteAETitle = getPeerAETitle();
-                storageCommitCommand->remoteHostName = getPeerAETitle();
-                storageCommitCommand->remoteIP = getPeerIP();
-                storageCommitCommand->remotePort = 4115; // FIXME
+                storageCommitCommand->scuinf.localAETitle = getCalledAETitle();
+                storageCommitCommand->scuinf.remoteAETitle = getPeerAETitle();
+                storageCommitCommand->scuinf.remoteHostName = getPeerAETitle();
+                storageCommitCommand->scuinf.remoteIP = getPeerIP();
+                storageCommitCommand->scuinf.remotePort = getPeerPort();
                 storageCommitCommand->reqDataset = (DcmDataset *)reqDataset->clone();
             }
 
@@ -1010,6 +1011,13 @@ void DcmStorCmtSCP::setPort(const Uint16 port)
 
 // ----------------------------------------------------------------------------
 
+void DcmStorCmtSCP::setPeerPort(const Uint16 port)
+{
+  m_peerPort = port;
+}
+
+// ----------------------------------------------------------------------------
+
 void DcmStorCmtSCP::setAETitle(const OFString &aetitle)
 {
   m_cfg->setAETitle(aetitle);
@@ -1177,6 +1185,13 @@ OFString DcmStorCmtSCP::getPeerAETitle() const
   if (m_assoc == NULL)
     return "";
   return m_assoc->params->DULparams.callingAPTitle;
+}
+
+// ----------------------------------------------------------------------------
+
+Uint16 DcmStorCmtSCP::getPeerPort() const
+{
+  return m_peerPort;
 }
 
 // ----------------------------------------------------------------------------

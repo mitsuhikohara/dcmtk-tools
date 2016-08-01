@@ -153,6 +153,12 @@ class DCMTK_DCMNET_EXPORT DcmStorCmtSCP
    */
   void setPort(const Uint16 port);
 
+  /** Set SCU's TCP/IP listening port
+   *  @param port [in] The port number to listen on. Note that usually on Unix-like systems
+   *                   only root user is permitted to open ports below 1024.
+   */
+  void setPeerPort(const Uint16 port);
+
   /** Set AE title of the server
    *  @param aetitle [in] The AE title of the server. By default, all SCU association requests
    *                      calling another AE title will be rejected. This behavior can be
@@ -320,6 +326,12 @@ class DCMTK_DCMNET_EXPORT DcmStorCmtSCP
    *  @return IP address of connected SCU. Empty string if SCP is currently not connected.
    */
   OFString getPeerIP() const;
+
+  /** Returns Port number of connected SCU
+   *  @return Port number of connected SCU.
+   *  Note : it is fixed value given
+   */
+  Uint16 getPeerPort() const;
 
   /** Returns maximum PDU size the communication peer (i.e.\ the SCU) is able to receive
    *  @return Maximum PDU size the SCU is able to receive. Returns zero if SCP is currently
@@ -661,6 +673,9 @@ private:
 
     // commitment wait delay in SCU
     Uint32  m_commit_wait_timeout;
+
+    // peer port of SCU
+    Uint16 m_peerPort;
 };
 
 #endif // DSTORCMTSCP_H

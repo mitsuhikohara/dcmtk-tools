@@ -452,17 +452,17 @@ OFCondition DcmStorCmtSCU::abortAssociation()
 void DcmStorCmtSCU::setStorageCommitCommand( DcmStorageCommitmentCommand *command )
 {
     storageCommitCommand = new DcmStorageCommitmentCommand();
-    storageCommitCommand->localAETitle = command->localAETitle;
-    storageCommitCommand->remoteAETitle = command->remoteAETitle;
-    storageCommitCommand->remoteHostName = command->remoteIP;
-    storageCommitCommand->remoteIP = command->remoteIP;
-    storageCommitCommand->remotePort = command->remotePort;
+    storageCommitCommand->scuinf.localAETitle = command->scuinf.localAETitle;
+    storageCommitCommand->scuinf.remoteAETitle = command->scuinf.remoteAETitle;
+    storageCommitCommand->scuinf.remoteHostName = command->scuinf.remoteIP;
+    storageCommitCommand->scuinf.remoteIP = command->scuinf.remoteIP;
+    storageCommitCommand->scuinf.remotePort = command->scuinf.remotePort;
     storageCommitCommand->reqDataset = (DcmDataset *)command->reqDataset->clone();
 
-    setAETitle(storageCommitCommand->localAETitle);
-    setPeerHostName(storageCommitCommand->remoteIP);
-    setPeerAETitle(storageCommitCommand->remoteAETitle);
-    setPeerPort(storageCommitCommand->remotePort);
+    setAETitle(storageCommitCommand->scuinf.localAETitle);
+    setPeerHostName(storageCommitCommand->scuinf.remoteIP);
+    setPeerAETitle(storageCommitCommand->scuinf.remoteAETitle);
+    setPeerPort(storageCommitCommand->scuinf.remotePort);
 
 }
 

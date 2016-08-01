@@ -52,15 +52,46 @@ enum DcmCloseAssociationType
   DCMSCU_PEER_ABORTED_ASSOCIATION
 };
 
+struct DcmStorCmtSCUInf {
+
+  DcmStorCmtSCUInf() :
+    localAETitle(""),
+    remoteAETitle(""),
+    remoteHostName(""),
+    remoteIP(""),
+    remotePort(0)
+  {
+  }
+ 
+  /// local AE Title (caller)
+  OFString localAETitle;
+
+  /// remote AE Title (called)
+  OFString remoteAETitle;
+
+  /// remote Host Name (called)
+  OFString remoteHostName;
+
+  /// remote IP Address (called)
+  OFString remoteIP;
+
+  /// remote Port (called)
+  Uint16 remotePort;
+
+}; 
+
 struct DcmStorageCommitmentCommand {
 
-    OFString localAETitle;
-    OFString remoteAETitle;
-    OFString remoteHostName;
-    OFString remoteIP;
-    Uint16 remotePort;
+  DcmStorageCommitmentCommand() :
+    reqDataset(NULL)
+  {
+  }
 
-    DcmDataset *reqDataset ;
+  /// SCU (called) info
+  DcmStorCmtSCUInf scuinf; 
+
+  // Dataset to send to SCU
+  DcmDataset *reqDataset ;
 
 } ;
 

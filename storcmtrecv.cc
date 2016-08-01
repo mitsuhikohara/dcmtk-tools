@@ -74,10 +74,12 @@ int main(int argc, char *argv[])
     const char *opt_aeTitle = APPLICATIONTITLE;
 
     OFCmdUnsignedInt opt_port = 0;
+    OFCmdUnsignedInt opt_peerPort = 115; // this is default for DVTK
     OFCmdUnsignedInt opt_dimseTimeout = 0;
     OFCmdUnsignedInt opt_acseTimeout = 30;
     OFCmdUnsignedInt opt_maxPDULength = ASC_DEFAULTMAXPDU;
     T_DIMSE_BlockingMode opt_blockingMode = DIMSE_BLOCKING;
+    OFCmdUnsignedInt opt_commitWaitTimeout = 5;
 
     OFBool opt_showPresentationContexts = OFFalse;  // default: do not show presentation contexts in verbose mode
     OFBool opt_useCalledAETitle = OFFalse;          // default: respond with specified application entity title
@@ -101,16 +103,21 @@ int main(int argc, char *argv[])
         CONVERT_TO_STRING("set my AE title (default: " << opt_aeTitle << ")", optString1);
         cmd.addOption("--aetitle",             "-aet", 1, "[a]etitle: string", optString1.c_str());
         cmd.addOption("--use-called-aetitle",  "-uca",    "always respond with called AE title");
+      cmd.addSubGroup("storage commitment options:");
+        CONVERT_TO_STRING("[s]econds: integer (default: " << opt_commitWaitTimeout << ")", optString2);
+        cmd.addOption("--commit-wait-timeout", "-cwt", 1, optString2.c_str(), "timeout for storage commitment event");
+        CONVERT_TO_STRING("port number: integer (default: " << opt_peerPort << ")", optString3);
+        cmd.addOption("--peer-port", "-p", 1,  optString3.c_str(), "peer port number");
       cmd.addSubGroup("other network options:");
-        CONVERT_TO_STRING("[s]econds: integer (default: " << opt_acseTimeout << ")", optString2);
-        cmd.addOption("--acse-timeout",        "-ta",  1, optString2.c_str(),
+        CONVERT_TO_STRING("[s]econds: integer (default: " << opt_acseTimeout << ")", optString4);
+        cmd.addOption("--acse-timeout",        "-ta",  1, optString4.c_str(),
                                                           "timeout for ACSE messages");
         cmd.addOption("--dimse-timeout",       "-td",  1, "[s]econds: integer (default: unlimited)",
                                                           "timeout for DIMSE messages");
-        CONVERT_TO_STRING("[n]umber of bytes: integer (" << ASC_MINIMUMPDUSIZE << ".." << ASC_MAXIMUMPDUSIZE << ")", optString3);
-        CONVERT_TO_STRING("set max receive pdu to n bytes (default: " << opt_maxPDULength << ")", optString4);
-        cmd.addOption("--max-pdu",             "-pdu", 1, optString3.c_str(),
-                                                          optString4.c_str());
+        CONVERT_TO_STRING("[n]umber of bytes: integer (" << ASC_MINIMUMPDUSIZE << ".." << ASC_MAXIMUMPDUSIZE << ")", optString5);
+        CONVERT_TO_STRING("set max receive pdu to n bytes (default: " << opt_maxPDULength << ")", optString6);
+        cmd.addOption("--max-pdu",             "-pdu", 1, optString5.c_str(),
+                                                          optString6.c_str());
         cmd.addOption("--disable-host-lookup", "-dhl",    "disable hostname lookup");
 
     /* evaluate command line */
@@ -144,8 +151,12 @@ int main(int argc, char *argv[])
         }
         if (cmd.findOption("--use-called-aetitle"))
             opt_useCalledAETitle = OFTrue;
-        cmd.endOptionBlock();
 
+        if (cmd.findOption("--commit-wait-timeout"))
+            app.checkValue(cmd.getValueAndCheckMin(opt_commitWaitTimeout, 1));
+        if (cmd.findOption("--peer-port")) 
+            app.checkValue(cmd.getValueAndCheckMin(opt_peerPort, 104));
+ 
         if (cmd.findOption("--acse-timeout"))
             app.checkValue(cmd.getValueAndCheckMin(opt_acseTimeout, 1));
         if (cmd.findOption("--dimse-timeout"))
@@ -157,9 +168,11 @@ int main(int argc, char *argv[])
             app.checkValue(cmd.getValueAndCheckMinMax(opt_maxPDULength, ASC_MINIMUMPDUSIZE, ASC_MAXIMUMPDUSIZE));
         if (cmd.findOption("--disable-host-lookup"))
             opt_HostnameLookup = OFFalse;
+        cmd.endOptionBlock();
 
       /* command line parameters */
       app.checkParam(cmd.getParamAndCheckMinMax(1, opt_port, 1, 65535));
+
   }
 
     /* print resource identifier */
@@ -180,6 +193,7 @@ int main(int argc, char *argv[])
 
     /* set general network parameters */
     storcmtSCP.setPort(OFstatic_cast(Uint16, opt_port));
+    storcmtSCP.setPeerPort(OFstatic_cast(Uint16, opt_peerPort));
     storcmtSCP.setAETitle(opt_aeTitle);
     storcmtSCP.setMaxReceivePDULength(OFstatic_cast(Uint32, opt_maxPDULength));
     storcmtSCP.setACSETimeout(OFstatic_cast(Uint32, opt_acseTimeout));
@@ -188,6 +202,7 @@ int main(int argc, char *argv[])
     storcmtSCP.setVerbosePCMode(opt_showPresentationContexts);
     storcmtSCP.setRespondWithCalledAETitle(opt_useCalledAETitle);
     storcmtSCP.setHostLookupEnabled(opt_HostnameLookup);
+    storcmtSCP.setCommitWaitTimeout(opt_commitWaitTimeout);
 
     OFLOG_INFO(dcmrecvLogger, "starting service class provider and listening ...");
 

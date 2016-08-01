@@ -28,7 +28,7 @@
 #include "dcmtk/dcmdata/dcdict.h"    /* for global data dictionary */
 #include "dcmtk/dcmdata/dcuid.h"     /* for dcmtk version name */
 #include "dcmtk/dcmdata/cmdlnarg.h"  /* for prepareCmdLineArgs */
-#include "dmppsscp.h"   /* for DcmMPPSSCP */
+#include "dmppsscp.h"   /* for DcmMppsSCP */
 
 
 /* general definitions */
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
     }
 
     /* start with the real work */
-    DcmMPPSSCP mppsSCP;
+    DcmMppsSCP mppsSCP;
     OFCondition status;
 
     OFLOG_INFO(dcmrecvLogger, "configuring service class provider ...");
