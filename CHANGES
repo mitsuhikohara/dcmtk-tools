@@ -1,0 +1,43 @@
+
+Changes between releases are documented here.
+
+**** Changes from 2016.08.01 (mitsuhiko.hara)
+
+- Develped mppsscp
+
+    mppsscp/Makefile.in
+    mppsscp/configure
+    mppsscp/dmppsscp.cc
+    mppsscp/dmppsscp.h
+    mppsscp/mppsrecv.cc
+
+- Develped storcmtscp
+
+    storcmtscp/Makefile.in
+    storcmtscp/configure
+    storcmtscp/dstorcmtscp.cc
+    storcmtscp/dstorcmtscp.h
+    storcmtscp/dstorcmtscu.cc
+    storcmtscp/storcmtrecv.cc
+
+- Add autoconf files
+
+    Makefile
+    configure
+    config/Makefile.in
+    config/Makefile.def.in
+    config/config.guess
+    config/config.sub
+    config/configure
+    config/confmod
+    config/install-sh
+    config/mkinstalldirs
+    config/modules
+
+- Add document files
+
+    CHANGES (this file)
+    COPYRIGHT (taken from DCMTK-3.6.1)
+    INSTALL (taken from autoconf)
+    README
+

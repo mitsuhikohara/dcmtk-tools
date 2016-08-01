@@ -1,0 +1,47 @@
+#
+#	Makefile for mppsscp
+#
+
+@SET_MAKE@
+
+SHELL = /bin/sh
+VPATH = @srcdir@:@top_srcdir@/include:@top_srcdir@/@configdir@/include
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+configdir = @top_srcdir@/@configdir@
+
+include $(configdir)/@common_makefile@
+
+dcmtkdir = /usr/local
+
+LOCALINCLUDES = -I$(dcmtkdir)/include 
+LIBDIRS = -L$(dcmtkdir)/lib64
+LOCALLIBS = -ldcmnet -ldcmdata -loflog -lofstd $(ZLIBLIBS) $(TCPWRAPPERLIBS) \
+        $(ICONVLIBS)
+DCMTLSLIBS = -ldcmtls
+
+objs = mppsrecv.o dmppsscp.o
+progs = mppsrecv
+
+all: $(progs)
+
+mppsrecv: mppsrecv.o dmppsscp.o
+	$(CXX) $(CXXFLAGS) $(LIBDIRS) $(LDFLAGS) -o $@ $(objs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
+
+install: all
+	$(configdir)/mkinstalldirs $(DESTDIR)$(bindir)
+	for prog in $(progs); do \
+		$(INSTALL_PROGRAM) $$prog$(BINEXT) $(DESTDIR)$(bindir) && $(STRIP) $(DESTDIR)$(bindir)/$$prog$(BINEXT) ;\
+	done
+
+
+clean:
+	rm -f $(objs) $(progs) $(TRASH)
+
+distclean:
+	rm -f $(objs) $(progs) $(DISTTRASH)
+
+
+dependencies:
+	$(CXX) -MM $(defines) $(includes) $(CPPFLAGS) $(CXXFLAGS) *.cc  > $(DEP)
+

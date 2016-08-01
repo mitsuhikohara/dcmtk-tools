@@ -1,33 +1,93 @@
 #
-#	Makefile for dcmnet/apps
+#	Makefile for dcmtk tools
 #
 
 SHELL = /bin/sh
-srcdir = .
-configdir = .
+configdir = config
 
 include $(configdir)/Makefile.def
 
-LOCALINCLUDES = -I/usr/local/include -I/usr/include
-LIBDIRS = -L/usr/local/lib64 -L/usr/lib64
-LOCALLIBS = -ldcmnet -ldcmdata -loflog -lofstd $(ZLIBLIBS) $(TCPWRAPPERLIBS)
-DCMTLSLIBS = -ldcmtls
+.NOTPARALLEL:
 
-mppssrcs = mppsrecv.cc dmppsscp.cc
-mppsobjs = $(mppssrcs:.cc=.o)
-storcmtsrcs = storcmtrecv.cc dstorcmtscp.cc dstorcmtscu.cc
-storcmtobjs = $(storcmtsrcs:.cc=.o)
+all:  config-all mppsscp-all storcmtscp-all
 
-progs = mppsrecv storcmtrecv
+install:  config-install mppsscp-install storcmtscp-install
 
-all: $(progs)
+install-all: install
 
-mppsrecv: $(mppsobjs)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(mppsobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
+install-bin:  config-install-bin mppsscp-install-bin storcmtscp-install-bin
 
-storcmtrecv: $(storcmtobjs)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBDIRS) -o $@ $(storcmtobjs) $(LOCALLIBS) $(DCMTLSLIBS) $(OPENSSLLIBS) $(MATHLIBS) $(LIBS)
+config-all:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" all)
+
+config-libsrc-all:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" libsrc-all)
+
+config-tests-all:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" tests-all)
+
+config-install:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install)
+
+config-install-bin:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-bin)
+
+config-install-doc:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-doc)
+
+config-install-data:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-data)
+
+config-install-etc:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-etc)
+
+config-install-lib:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-lib)
+
+config-install-include:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-include)
+
+config-install-support:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-support)
+
+config-check:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" check)
+
+config-check-exhaustive:
+	(cd config && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" check-exhaustive)
+
+mppsscp-all:
+	(cd mppsscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" all)
+
+mppsscp-install:
+	(cd mppsscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install)
+
+mppsscp-install-bin:
+	(cd mppsscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-bin)
+
+storcmtscp-all:
+	(cd storcmtscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" all)
+
+storcmtscp-install:
+	(cd storcmtscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install)
+
+storcmtscp-install-bin:
+	(cd storcmtscp && $(MAKE) ARCH="$(ARCH)" DESTDIR="$(DESTDIR)" install-bin)
+
+dependencies:
+	-(cd config && $(MAKE) dependencies)
+	(cd mppsscp && $(MAKE) dependencies)
+	(cd storcmtscp && $(MAKE) dependencies)
 
 clean:
-	rm -f $(progs) $(mppsobjs) $(storcmtobjs)
+	(cd mppsscp && $(MAKE) clean)
+	(cd storcmtscp && $(MAKE) clean)
+	-(cd config && $(MAKE) clean)
+	rm -f $(TRASH)
+
+distclean:
+	(cd mppsscp && $(MAKE) distclean)
+	(cd storcmtscp && $(MAKE) distclean)
+	-(cd config && $(MAKE) distclean)
+	rm -f $(TRASH)
 

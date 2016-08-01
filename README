@@ -1,0 +1,33 @@
+
+This is experimental implementation of dicom scp simulators using DCMTK
+
+    mppsrecv - Modality Performed Procedure Step SCP
+
+        - receive N-CREATE Request and send back N-CREATE Response
+        - receive N-SET Request and send back N-SET Response
+
+    storcmtrecv - Storage Commitment SCP
+
+        - receive N-ACTION Request and send back N-ACTION Response
+        - send N-EVENT-REPORT Request in the same association with N-ACTION Response
+          if association is closed within 5 sec, otherwise send N-EVENT-REPORT Request 
+          in new association.
+
+All codes are developed based on DCMTK source codes
+
+Requirements: 
+
++ DCMTK 3.6.1 
+  dcmtk-3.6.1 should be built separately and installed under /usr/local directory 
+
+Notes:
+
++  It is only tested on OpenSUSE Leap 42
+
+Usage:
+
+    % mppsrecv -aet <AETitle> <port number>
+    
+    % storcmtrecv -cwt <commit wait timeout> -p <Peer Port>  -aet <AETitle> <port number> 
+
+
