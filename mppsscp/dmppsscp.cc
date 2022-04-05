@@ -372,7 +372,7 @@ OFCondition DcmMppsSCP::processAssociationRQ()
   // Condition 2: determine the application context name. If an error occurred or if the
   // application context name is not supported we want to refuse the association request.
   char buf[BUFSIZ];
-  OFCondition cond = ASC_getApplicationContextName( m_assoc->params, buf );
+  OFCondition cond = ASC_getApplicationContextName( m_assoc->params, buf, sizeof(buf) );
   if( cond.bad() || strcmp( buf, DICOM_STDAPPLICATIONCONTEXT ) != 0 )
   {
     refuseAssociation( DCMSCP_BAD_APPLICATION_CONTEXT_NAME );

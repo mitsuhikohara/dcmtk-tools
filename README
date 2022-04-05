@@ -17,12 +17,12 @@ All codes are developed based on DCMTK source codes
 
 Requirements: 
 
-+ DCMTK 3.6.1 
-  dcmtk-3.6.1 should be built separately and installed under /usr/local directory 
++ DCMTK 3.6.6 
+  dcmtk-3.6.6 should be built separately and installed under /usr/local directory 
 
 Notes:
 
-+  It is only tested on OpenSUSE Leap 42
++  It is only tested on OpenSUSE Leap 15.3
 
 Usage:
 
